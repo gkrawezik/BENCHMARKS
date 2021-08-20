@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <benchmark name="Gadget4" outpath="bench_run">
+        <comment>Gadget4 Rome</comment>
+        
+        <!-- benchmark configuration -->
+        <parameterset name="param_set">
+            <parameter name="num_nodes" type="int">1,2,4,8,16</parameter>
+            <parameter name="num_ranks_per_node" type="int">128</parameter>
+            <parameter name="num_shared_memory_ranks_per_node" type="int">64</parameter>
+            <parameter name="num_mpi_listeners_per_node" type="int">2</parameter>
+            <parameter name="grid_size_per_core" type="int">144</parameter>
+            <parameter name="grid_size" type="int" mode="python">int(int($grid_size_per_core*(${num_nodes}*${num_ranks_per_node})**0.33333)/2)*2</parameter>
+            <!--parameter name="grid_size" type="int">1664</parameter-->
+            <parameter name="pmgrid" type="int" mode="python">${grid_size} * 2</parameter>
+        </parameterset>
+
+        <parameterset name="comp_set">
+            <!--parameter name="toolchain">gcc_openmpi</parameter-->
+            <parameter name="toolchain">intel</parameter>
+            <parameter name="intel_version" type="string">2017-4</parameter>
+            <parameter name="compiler" type="string" mode="python">{
+			"gcc_openmpi" : "gcc/7.4.0",
+			"intel" : "intel/compiler/${intel_version}"
+		}["$toolchain"]</parameter>
+            <parameter name="mpi_library" type="string" mode="python">{
+			"gcc_openmpi" : "openmpi4/4.0.5",
+			"intel" : "intel/mpi/${intel_version}"
+		}["$toolchain"]</parameter>
+            <parameter name="hdf5_library" type="string" mode="python">{
+			"gcc_openmpi" : "lib/hdf5/1.8.21-openmpi4",
+			"intel" : "lib/hdf5/1.8.21-intelmpi"
+		}["$toolchain"]</parameter>
+            <parameter name="sys_type" type="string" mode="python">{
+			"gcc_openmpi" : "rusty_rome",
+			"intel" : "rusty_rome_intel"
+		}["$toolchain"]</parameter>
+        </parameterset>
+        
+        <!-- Job configuration -->
+        <parameterset name="executeset">
+            <parameter name="submit_cmd">sbatch</parameter>
+            <parameter name="job_file">rome.slurm</parameter>
+            <parameter name="nodes" type="int">$num_nodes</parameter>
+            <parameter name="walltime">00:40:00</parameter>
+            <parameter name="ranks_per_node" type="int">$num_ranks_per_node</parameter>
+            <parameter name="procs_per_node" type="int">128</parameter>
+            <parameter name="ready_file">ready</parameter>
+            <parameter name="err_file">gadget4.err</parameter>
+            <parameter name="out_file">gadget4.out</parameter>
+        </parameterset>
+        
+        <!-- Load jobfile and copy input -->
+        <fileset name="files">
+            <copy>${job_file}.in</copy>
+            <copy>param.txt.in</copy>
+            <copy>outputs.txt</copy>
+            <copy>powerspec.txt</copy>
+            <copy>$$SCRATCH_GADGET/gadget4_build/$compiler/$mpi_library/$num_nodes/gadget4/Gadget4</copy>
+            <copy>$$SCRATCH_GADGET/gadget4_build/$compiler/$mpi_library/$num_nodes/gadget4/Config.sh</copy>
+            <copy>output</copy>
+        </fileset>
+        
+        <!-- Substitute jobfile -->
+        <substituteset name="sub_job">
+            <iofile in="${job_file}.in" out="$job_file" />
+            <sub source="#NODES#" dest="$num_nodes" />
+            <sub source="#PROCS_PER_NODE#" dest="$procs_per_node" />
+            <sub source="#WALLTIME#" dest="$walltime" />
+            <sub source="#ERROR_FILEPATH#" dest="$err_file" />
+            <sub source="#OUT_FILEPATH#" dest="$out_file" />
+            <sub source="#READY#" dest="$ready_file" />
+            <sub source="#COMPILER#" dest="$compiler" />
+            <sub source="#MPI_LIBRARY#" dest="$mpi_library" />
+            <sub source="#HDF5_LIBRARY#" dest="$hdf5_library" />
+        </substituteset> 
+
+        <!-- Substitute jobfile -->
+        <substituteset name="sub_param">
+            <iofile in="param.txt.in" out="param.txt" />
+            <sub source="#GRID_SIZE#" dest="$grid_size" />
+        </substituteset> 
+
+        <!-- Regex pattern -->
+        <patternset name="pattern">
+            <pattern name="domain" type="float">DOMAIN: domain decomposition done. \(took in total $jube_pat_fp sec\)</pattern>
+            <pattern name="gravtree" type="float">GRAVTREE: Tree construction done. took $jube_pat_fp sec</pattern>
+            <pattern name="pmperiodic" type="float">PM-PERIODIC: done.  \(took $jube_pat_fp seconds\)</pattern>
+            <pattern name="fmm" type="float">FMM: Forces calculated, with [+-]?\d+ cycles took $jube_pat_fp sec</pattern>
+        </patternset>
+
+        <!-- Source code -->
+        <fileset name="source">
+            <copy>gadget4</copy>
+        </fileset>
+
+        <!-- Substitute jobfile -->
+        <substituteset name="sub_comp">
+            <iofile in="gadget4/Config.sh.in" out="gadget4/Config.sh" />
+            <sub source="#PMGRID#" dest="$pmgrid" />
+            <sub source="#NGENIC#" dest="$grid_size" />
+            <sub source="#RANKS_SHARED_MEMORY#" dest="$num_shared_memory_ranks_per_node" />
+            <sub source="#MPI_LISTENERS#" dest="$num_mpi_listeners_per_node" />
+        </substituteset> 
+
+        <!-- Build -->
+        <step name="compile" work_dir="/tmp/gadget4_build/$compiler/$mpi_library/$num_nodes">
+        <!--step name="compile"-->
+            <use>source, sub_comp</use>
+            <use>comp_set</use>
+            <use>param_set</use>
+            <do work_dir="gadget4">
+                module purge
+                module load $compiler
+                module load $mpi_library
+                module load lib/openblas/0.3.7-threaded
+                module load lib/fftw3/3.3.8
+                module load hwloc/1.11.8
+                module load lib/gsl/2.6
+                module load $hdf5_library
+                module list
+                export SYSTYPE=$sys_type
+                make clean
+                make -j16
+            </do>
+        </step>
+                 
+        <!-- Operation -->
+        <!--step name="submit" work_dir="$$SCRATCH_NPB/jobsystem_bench_${jube_benchmark_id}_${jube_wp_id}" depend="compile"-->
+        <step name="submit" work_dir="$$HOME/ceph/BENCHMARKS/JUBE/GADGET4/${jube_benchmark_padid}/wp_${jube_wp_padid}" depend="compile">
+        <!--step name="submit" depend="compile"-->
+            <use>comp_set</use>
+            <use>param_set</use>
+            <use>executeset</use>
+            <use>files,sub_job,sub_param</use>
+            <do done_file="$ready_file">module load slurm; $submit_cmd $job_file</do> <!-- shell command -->
+        </step>
+
+        <!-- Analyze -->
+        <analyser name="analyse">
+            <use>pattern</use>
+            <analyse step="submit">
+                <file>$out_file</file>
+            </analyse>
+        </analyser>
+
+        <!-- Create result table -->
+        <result>
+            <use>analyse</use>
+            <table name="result" style="pretty" sort="nodes">
+                <column>compiler</column>
+                <column>mpi_library</column>
+                <column>nodes</column>
+                <column>grid_size</column>
+                <column>domain_avg</column>
+                <column>gravtree_avg</column>
+                <column>pmperiodic_avg</column>
+                <column>fmm_avg</column>
+            </table>
+        </result>
+
+    </benchmark>
+</jube>
