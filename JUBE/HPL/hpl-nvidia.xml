@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <benchmark name="HPL-NVIDIA-1.0.0" outpath="bench_hpl_nvidia_run">
+        <comment>HPL-NVIDIA 1.0.0 A100-40GB Icelake NVIDIA optimizations</comment>
+        
+        <!-- benchmark configuration -->
+        <parameterset name="param_set">
+            <parameter name="num_nodes" type="int">36</parameter>
+            <parameter name="num_gpus_per_node" type="int">4</parameter>
+            <parameter name="gpu_arch" type="string">a100-40gb</parameter>
+            <parameter name="cpu_arch" type="string">icelake</parameter>
+            <parameter name="mem_gb" type="int">40</parameter>
+            <parameter name="single_rank_problem_size" type="int">72000</parameter>
+            <!-- This parameter is used to tell how much of the memory is to be used -->
+            <parameter name="mem_occupation" type="float">0.975</parameter>
+        </parameterset>
+
+        <!-- Job configuration -->
+        <parameterset name="executeset">
+            <parameter name="submit_cmd">sbatch</parameter>
+            <parameter name="job_file">hpl-nvidia.run</parameter>
+            <parameter name="dat_file">hpl-nvidia.dat</parameter>
+            <parameter name="config_file">config-nvidia.sh</parameter>
+            <parameter name="nodes" type="int">$num_nodes</parameter>
+            <parameter name="walltime">00:30:00</parameter>
+            <parameter name="ranks_per_node" type="int">$num_gpus_per_node</parameter>
+            <parameter name="proc_type" type="string">icelake</parameter>
+            <parameter name="procs_per_node" type="int">64</parameter>
+            <parameter name="threads_per_rank" type="int" mode="python">int(${procs_per_node}/${ranks_per_node})</parameter>
+            <parameter name="num_ranks" type="int" mode="python">${num_nodes}*${ranks_per_node}</parameter>
+            <parameter name="problem_size" type="int" mode="python">int((${num_nodes}*${ranks_per_node}*${mem_gb}*${mem_occupation}*(1024*1024*1024)/8)**0.5)</parameter>
+            <parameter name="num_procs_q" type="int" mode="shell">echo -e "n=${num_nodes}*${ranks_per_node}\ni=int(n**0.5 + 0.5)\nwhile n % i != 0:\n  i -= 1\nprint i" | python | xargs echo -n</parameter> 
+            <parameter name="num_procs_p" type="int" mode="python">int((${num_nodes}*${ranks_per_node}) / ${num_procs_q})</parameter>
+            <parameter name="ready_file">ready</parameter>
+            <parameter name="err_file">hpl.err</parameter>
+            <parameter name="out_file">hpl.out</parameter>
+        </parameterset>
+        
+        <!-- Load jobfile and copy input -->
+        <fileset name="files">
+            <copy>${job_file}.in</copy>
+            <copy>${dat_file}.in</copy>
+            <copy>${config_file}</copy>
+        </fileset>
+        
+        <!-- Substitute jobfile -->
+        <substituteset name="sub_job">
+            <iofile in="${job_file}.in" out="$job_file" />
+            <sub source="#NODES#" dest="$nodes" />
+            <sub source="#PROC_TYPE#" dest="$proc_type" />
+            <sub source="#GPU_TYPE#" dest="$gpu_arch" />
+            <sub source="#RANKS_PER_NODE#" dest="$ranks_per_node" />
+            <sub source="#CORES_PER_RANK#" dest="$threads_per_rank" />
+            <sub source="#WALLTIME#" dest="$walltime" />
+            <sub source="#ERROR_FILEPATH#" dest="$err_file" />
+            <sub source="#OUT_FILEPATH#" dest="$out_file" />
+            <sub source="#READY#" dest="$ready_file" />
+        </substituteset> 
+
+	<!-- Substitute dat file -->
+        <substituteset name="sub_dat">
+            <iofile in="${dat_file}.in" out="$dat_file" />
+            <sub source="#PROBLEM_SIZE#" dest="$problem_size" />
+            <sub source="#NUM_PROCS_P#" dest="$num_procs_p" />
+            <sub source="#NUM_PROCS_Q#" dest="$num_procs_q" />
+        </substituteset> 
+
+        <!-- Regex pattern -->
+        <patternset name="pattern">
+            <pattern name="time_seconds" type="float">WR03L2L2\s+${problem_size}\s+288\s+${num_procs_p}\s+${num_procs_q}\s+$jube_pat_fp</pattern>
+            <pattern name="gigaflops" type="float">WR03L2L2\s+${problem_size}\s+288\s+${num_procs_p}\s+${num_procs_q}\s+\d+.\d+\s+$jube_pat_fp</pattern>
+        </patternset>
+
+        <!-- Operation -->
+        <step name="submit" work_dir="$$HOME/ceph/BENCHMARKS/JUBE/HPL/NVIDIA/${jube_benchmark_padid}/wp_${jube_wp_padid}_n${num_nodes}_g${ranks_per_node}">
+            <use>param_set</use>
+            <use>executeset</use>
+            <use>files,sub_job,sub_dat</use>
+            <do done_file="$ready_file">module load slurm; $submit_cmd $job_file</do> <!-- shell command -->
+        </step>
+
+        <!-- Analyze -->
+        <analyser name="analyse">
+            <use>pattern</use>
+            <analyse step="submit">
+                <file>hpl.out</file>
+            </analyse>
+        </analyser>
+
+        <!-- Create result table -->
+        <result>
+            <use>analyse</use>
+            <table name="result" style="csv" sort="num_nodes,ranks_per_nodes">
+                <column>num_nodes</column>
+                <column>ranks_per_node</column>
+                <column>problem_size</column>
+                <column>time_seconds</column>
+                <column>gigaflops</column>
+            </table>
+        </result>
+
+    </benchmark>
+</jube>
