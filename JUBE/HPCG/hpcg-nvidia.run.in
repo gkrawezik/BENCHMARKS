@@ -1,0 +1,30 @@
+#!/bin/bash -l
+
+#SBATCH -p a100test
+#SBATCH --nodes=#NODES#
+#BATCH -C #PROC_TYPE#
+#BATCH --gpus-per-node=#GPU_TYPE#:#RANKS_PER_NODE#
+#SBATCH --ntasks-per-node=#RANKS_PER_NODE#
+#SBATCH --cpus-per-task=#CORES_PER_RANK#
+#SBATCH --time=#WALLTIME#
+#SBATCH -e #ERROR_FILEPATH#
+#SBATCH -o #OUT_FILEPATH#
+
+### start of jobscript
+
+CONT='/mnt/home/gkrawezik/DOWNLOADS/SCC/NVIDIA/hpc-benchmarks_21.4-hpcg.sif'
+MOUNT="$SLURM_SUBMIT_DIR:/my-dat-files"
+
+module purge
+module load singularity
+module load slurm
+
+# LD_LIBRARY_PATH added here because for some reason cublas not found automatically
+srun -N $SLURM_NNODES --ntasks-per-node=$SLURM_NTASKS_PER_NODE --cpu-bind=none --mpi=pmix \
+   singularity run \
+     --env LD_LIBRARY_PATH=/usr/local/cuda/targets/x86_64-linux/lib \
+     --nv \
+     -B "${MOUNT}" "${CONT}" \
+     hpcg.sh --config /my-dat-files/config-nvidia.sh --dat /my-dat-files/hpcg-nvidia.dat
+
+touch #READY#

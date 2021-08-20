@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <benchmark name="HPCG-NVIDIA-1.0.0" outpath="bench_hpcg_nvidia_run">
+        <comment>HPCG-NVIDIA 1.0.0 A100-40GB Icelake NVIDIA optimizations</comment>
+        
+        <!-- benchmark configuration -->
+        <parameterset name="param_set">
+            <parameter name="num_nodes" type="int">36</parameter>
+            <parameter name="num_gpus_per_node" type="int">4</parameter>
+            <parameter name="gpu_arch" type="string">a100-40gb</parameter>
+            <parameter name="cpu_arch" type="string">icelake</parameter>
+            <parameter name="mem_gb" type="int">40</parameter>
+            <!-- This parameter is used to tell how much of the memory is to be used -->
+            <parameter name="mem_occupation" type="float">0.975</parameter>
+        </parameterset>
+
+        <!-- Job configuration -->
+        <parameterset name="executeset">
+            <parameter name="submit_cmd">sbatch</parameter>
+            <parameter name="job_file">hpcg-nvidia.run</parameter>
+            <parameter name="dat_file">hpcg-nvidia.dat</parameter>
+            <parameter name="config_file">config-nvidia.sh</parameter>
+            <parameter name="nodes" type="int">$num_nodes</parameter>
+            <parameter name="walltime">02:30:00</parameter>
+            <parameter name="ranks_per_node" type="int">$num_gpus_per_node</parameter>
+            <parameter name="proc_type" type="string">icelake</parameter>
+            <parameter name="procs_per_node" type="int">64</parameter>
+            <parameter name="threads_per_rank" type="int" mode="python">int(${procs_per_node}/${ranks_per_node})</parameter>
+            <parameter name="num_ranks" type="int" mode="python">${num_nodes}*${ranks_per_node}</parameter>
+            <parameter name="ready_file">ready</parameter>
+            <parameter name="err_file">hpcg.err</parameter>
+            <parameter name="out_file">hpcg.out</parameter>
+        </parameterset>
+        
+        <!-- Load jobfile and copy input -->
+        <fileset name="files">
+            <copy>${job_file}.in</copy>
+            <copy>${dat_file}</copy>
+            <copy>${config_file}</copy>
+        </fileset>
+        
+        <!-- Substitute jobfile -->
+        <substituteset name="sub_job">
+            <iofile in="${job_file}.in" out="$job_file" />
+            <sub source="#NODES#" dest="$nodes" />
+            <sub source="#PROC_TYPE#" dest="$proc_type" />
+            <sub source="#GPU_TYPE#" dest="$gpu_arch" />
+            <sub source="#RANKS_PER_NODE#" dest="$ranks_per_node" />
+            <sub source="#CORES_PER_RANK#" dest="$threads_per_rank" />
+            <sub source="#WALLTIME#" dest="$walltime" />
+            <sub source="#ERROR_FILEPATH#" dest="$err_file" />
+            <sub source="#OUT_FILEPATH#" dest="$out_file" />
+            <sub source="#READY#" dest="$ready_file" />
+        </substituteset> 
+
+        <!-- Regex pattern -->
+        <patternset name="pattern">
+            <pattern name="gigaflops" type="float">final =\s+$jube_pat_fp\s+</pattern>
+        </patternset>
+
+        <!-- Operation -->
+        <step name="submit" work_dir="$$HOME/ceph/BENCHMARKS/JUBE/HPCG/NVIDIA/${jube_benchmark_padid}/wp_${jube_wp_padid}_n${num_nodes}_g${ranks_per_node}">
+            <use>param_set</use>
+            <use>executeset</use>
+            <use>files,sub_job</use>
+            <do done_file="$ready_file">module load slurm; $submit_cmd $job_file</do> <!-- shell command -->
+        </step>
+
+        <!-- Analyze -->
+        <analyser name="analyse">
+            <use>pattern</use>
+            <analyse step="submit">
+                <file>hpcg.out</file>
+            </analyse>
+        </analyser>
+
+        <!-- Create result table -->
+        <result>
+            <use>analyse</use>
+            <table name="result" style="csv" sort="num_nodes,ranks_per_nodes">
+                <column>num_nodes</column>
+                <column>ranks_per_node</column>
+                <column>gigaflops</column>
+            </table>
+        </result>
+
+    </benchmark>
+</jube>
