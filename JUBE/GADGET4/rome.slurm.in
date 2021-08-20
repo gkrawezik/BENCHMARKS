@@ -1,0 +1,37 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=haloshp
+#SBATCH --output=#OUT_FILEPATH#
+#SBATCH --error=#ERROR_FILEPATH#
+#SBATCH --partition=scc
+#SBATCH --nodes=#NODES#
+#SBATCH --constraint=rome
+#SBATCH --ntasks-per-node=#PROCS_PER_NODE#
+#SBATCH --time=#WALLTIME#
+
+
+module purge
+module load slurm
+module load #COMPILER#
+module load #MPI_LIBRARY#
+module load lib/openblas
+module load lib/gsl
+module load lib/fftw3
+module load #HDF5_LIBRARY#
+module load hwloc
+
+#cd $HOME/gadget4
+#make -j 64 DIR=$SLURM_SUBMIT_DIR
+#cd $SLURM_SUBMIT_DIR
+
+# HDF5 dependency for Intel MPI
+export LD_LIBRARY_PATH=/cm/shared/sw/pkg/devel/gcc/7.4.0/lib:$LD_LIBRARY_PATH
+
+hostname; pwd; date
+echo $SLURM_NPROCS processors on $SLURM_NNODES nodes: $SLURM_NODELIST
+
+#mpirun -np $SLURM_NPROCS --bind-to core ./Gadget4 param.txt
+mpirun -np $SLURM_NPROCS ./Gadget4 param.txt
+
+touch #READY#
+

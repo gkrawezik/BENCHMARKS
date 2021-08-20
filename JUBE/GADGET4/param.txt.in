@@ -1,0 +1,81 @@
+# Files
+OutputDir                           output
+SnapshotFileBase                    snapshot
+SnapFormat                          3
+InitCondFile                        n/a
+ICFormat                            n/a
+NumFilesPerSnapshot                 504  # 63 * 8
+MaxFilesWithConcurrentIO            32   #  4 * 8
+
+# Output frequency
+OutputListOn                        1
+OutputListFilename                  outputs.txt
+TimeBetSnapshot                     n/a
+TimeOfFirstSnapshot                 n/a
+TimeBetStatistics                   0.1
+
+# CPU time and memory
+TimeLimitCPU                        1800
+CpuTimeBetRestartFile               10800
+MaxMemSize                          7200
+
+# Spacetime
+ComovingIntegrationOn               1
+TimeBegin                           0.015625
+TimeMax                             1.0
+BoxSize                             1000.0
+
+# Cosmological parameters
+Omega0                              0.3089
+OmegaLambda                         0.6911
+OmegaBaryon                         0.0486
+HubbleParam                         0.6774
+Hubble                              100.0
+
+# Time integration accuracy
+MaxSizeTimestep                     0.01
+MinSizeTimestep                     0.0
+ErrTolIntAccuracy                   0.025
+CourantFac                          n/a
+
+# Force accuracy
+TypeOfOpeningCriterion              1
+ErrTolTheta                         0.7
+ErrTolThetaMax                      1.0
+ErrTolForceAcc                      0.002
+
+# Domain decomposition
+ActivePartFracForNewDomainDecomp    0.05
+TopNodeFactor                       5.0
+
+# Softening
+SofteningComovingClass0             0.02
+SofteningMaxPhysClass0              0.02
+SofteningClassOfPartType0           0
+SofteningClassOfPartType1           0
+
+# SPH
+DesNumNgb                           n/a
+MaxNumNgbDeviation                  n/a
+InitGasTemp                         n/a
+ArtBulkViscConst                    n/a
+MinEgySpec                          n/a
+
+# IC
+NSample                             #GRID_SIZE#
+GridSize                            #GRID_SIZE#
+PowerSpectrumType                   2
+PowerSpectrumFile                   powerspec.txt
+InputSpectrum_UnitLength_in_cm      3.085678e24
+ShapeGamma                          n/a
+PrimordialIndex                     1.0
+Sigma8                              0.8159
+ReNormalizeInputSpectrum            1
+SphereMode                          1
+Seed                                1991
+
+# System of units
+UnitLength_in_cm                    3.085678e24
+UnitMass_in_g                       1.989e43
+UnitVelocity_in_cm_per_s            1e5
+GravityConstantInternal             0
