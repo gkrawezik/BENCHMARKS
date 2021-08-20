@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <benchmark name="gromacs_gpu" outpath="bench_run_gpu">
+        <comment>GROMACS 2021.1-singlegpunode GPU only a100-40gb</comment>
+        
+        <!-- benchmark configuration -->
+        <parameterset name="param_set">
+            <parameter name="num_nodes" type="int">1</parameter>
+            <parameter name="num_ranks_per_node" type="int">4</parameter>
+            <parameter name="tpr_filename" type="string">step7_1</parameter>
+        </parameterset>
+        
+        <!-- Job configuration -->
+        <parameterset name="executeset">
+            <parameter name="submit_cmd">sbatch</parameter>
+            <parameter name="job_file">gromacs_gpu.run</parameter>
+            <parameter name="nodes" type="int">$num_nodes</parameter>
+            <parameter name="walltime">00:20:00</parameter>
+            <parameter name="ranks_per_node" type="int">$num_ranks_per_node</parameter>
+            <parameter name="procs_per_node" type="int">40</parameter>
+            <parameter name="threads_per_rank" type="int" mode="python">int(${procs_per_node}/${ranks_per_node})</parameter>
+            <parameter name="num_ranks" type="int" mode="python">${num_nodes}*${ranks_per_node}</parameter>
+            <parameter name="ready_file">ready</parameter>
+            <parameter name="err_file">gromacs.err</parameter>
+            <parameter name="out_file">gromacs.out</parameter>
+            <parameter name="exec">echo "Launching Gromacs on $num_nodes nodes"; hostname; gmx mdrun -v -ntmpi $num_ranks_per_node -ntomp $threads_per_rank -dlb yes -update gpu -bonded gpu -nb gpu -pme gpu -npme 1 -pmefft gpu -nstlist 400 -maxh 0.25 -resethway -noconfout -deffnm $tpr_filename</parameter>
+        </parameterset>
+        
+        <!-- Load jobfile and copy input -->
+        <fileset name="files">
+            <link>$$PWD/${job_file}.in</link>
+            <link>$$PWD/inputs/${tpr_filename}.tpr</link>
+
+        </fileset>
+        
+        <!-- Substitute jobfile -->
+        <substituteset name="sub_job">
+            <iofile in="${job_file}.in" out="$job_file" />
+            <sub source="#NODES#" dest="$nodes" />
+            <sub source="#PROCS_PER_NODE#" dest="$procs_per_node" />
+            <sub source="#WALLTIME#" dest="$walltime" />
+            <sub source="#ERROR_FILEPATH#" dest="$err_file" />
+            <sub source="#OUT_FILEPATH#" dest="$out_file" />
+            <sub source="#EXEC#" dest="$exec" />
+            <sub source="#READY#" dest="$ready_file" />
+        </substituteset> 
+
+        <!-- Regex pattern -->
+        <patternset name="pattern">
+            <pattern name="ns_per_day" type="float">Performance:\s+$jube_pat_fp</pattern>
+        </patternset>
+                 
+        <!-- Operation -->
+        <step name="submit" work_dir="$$HOME/ceph/BENCHMARKS/JUBE/GROMACS/gpu_only/${jube_benchmark_padid}/wp_${jube_wp_padid}" >
+            <use>param_set</use>
+            <use>executeset</use>
+            <use>files,sub_job</use>
+            <do done_file="$ready_file">$submit_cmd $job_file</do> <!-- shell command -->
+        </step>
+
+        <!-- Analyze -->
+        <analyser name="analyse">
+            <use>pattern</use>
+            <analyse step="submit">
+                <file>$err_file</file>
+            </analyse>
+        </analyser>
+
+        <!-- Create result table -->
+        <result>
+            <use>analyse</use>
+            <table name="result" style="pretty" sort="number">
+                <column>tpr_filename</column>
+                <column>nodes</column>
+                <column>ranks_per_node</column>
+                <column>threads_per_rank</column>
+                <column>ns_per_day</column>
+            </table>
+        </result>
+
+    </benchmark>
+</jube>

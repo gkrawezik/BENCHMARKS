@@ -1,0 +1,21 @@
+#!/bin/bash -l
+#SBATCH -p gpu
+#SBATCH --gpus-per-node=a100-40gb:4
+#SBATCH --nodes=#NODES#
+#SBATCH --ntasks-per-node=#PROCS_PER_NODE#
+#SBATCH --time=#WALLTIME#
+#SBATCH -e #ERROR_FILEPATH#
+#SBATCH -o #OUT_FILEPATH#
+
+### start of jobscript
+
+module purge
+module load gcc/7.4.0 
+module load python3/3.7.3
+module load slurm
+module load lib/fftw3
+module load cuda/11.1.0_455.23.05
+module load gromacs/2021.1-singlegpunode
+
+#EXEC#
+touch #READY#

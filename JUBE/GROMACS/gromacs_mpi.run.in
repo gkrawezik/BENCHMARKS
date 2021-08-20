@@ -1,0 +1,22 @@
+#!/bin/bash -l
+#SBATCH -p scc -C #PROC_TYPE#
+#SBATCH --nodes=#NODES#
+#SBATCH --ntasks-per-node=#RANKS_PER_NODE#
+#SBATCH --cpus-per-task=#CORES_PER_RANK#
+#SBATCH --time=#WALLTIME#
+#SBATCH -e #ERROR_FILEPATH#
+#SBATCH -o #OUT_FILEPATH#
+
+### start of jobscript
+
+module purge
+module load #COMPILER#
+module load python3/3.7.3
+module load #MPI_LIBRARY#
+module load slurm
+module load lib/fftw3
+module load cuda/11.1.0_455.23.05
+module load gromacs/2021.1
+
+#EXEC#
+touch #READY#
