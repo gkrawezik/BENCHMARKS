@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jube>
+    <!-- Before launching, make sure to export SCRATCH_GADGET=/tmp or similar -->
     <benchmark name="Gadget4" outpath="bench_run">
         <comment>Gadget4 Rome</comment>
         
@@ -104,7 +105,7 @@
         </substituteset> 
 
         <!-- Build -->
-        <step name="compile" work_dir="/tmp/gadget4_build/$compiler/$mpi_library/$num_nodes">
+        <step name="compile" work_dir="$$SCRATCH_GADGET/gadget4_build/$compiler/$mpi_library/$num_nodes">
         <!--step name="compile"-->
             <use>source, sub_comp</use>
             <use>comp_set</use>
@@ -126,7 +127,6 @@
         </step>
                  
         <!-- Operation -->
-        <!--step name="submit" work_dir="$$SCRATCH_NPB/jobsystem_bench_${jube_benchmark_id}_${jube_wp_id}" depend="compile"-->
         <step name="submit" work_dir="$$HOME/ceph/BENCHMARKS/JUBE/GADGET4/${jube_benchmark_padid}/wp_${jube_wp_padid}" depend="compile">
         <!--step name="submit" depend="compile"-->
             <use>comp_set</use>
