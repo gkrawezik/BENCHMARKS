@@ -12,7 +12,7 @@
 
 ### start of jobscript
 
-CONT='/mnt/home/gkrawezik/DOWNLOADS/SCC/NVIDIA/hpc-benchmarks_21.4-hpcg.sif'
+CONT='$HOME/DOWNLOADS/SCC/NVIDIA/hpc-benchmarks_21.4-hpcg.sif'
 MOUNT="$SLURM_SUBMIT_DIR:/my-dat-files"
 
 module purge
