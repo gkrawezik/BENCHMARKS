@@ -26,7 +26,6 @@
             <parameter name="out_file">npb.out</parameter>
             <parameter name="work_dir_2" type="string">"$$HOME/ceph/BENCHMARKS/JUBE/NPB/run_only_mpi/${jube_benchmark_padid}/wp_${jube_wp_padid}"</parameter>
             <parameter name="exec">'( cd ${work_dir_2} ; module load ${compiler}; module load openmpi4; unset SLURM_JOBID; mpirun -np ${num_ranks} --bind-to core ./$kernel.$class.x > ${out_file} 2> ${err_file}; touch ${ready_file} )'</parameter>
-            <!-- parameter name="exec">module load ${compiler}; module load openmpi4; mpirun -np ${num_ranks} - -bind-to core ./$kernel.$class.x > ${out_file} 2> ${err_file}; touch ${ready_file}</parameter -->
         </parameterset>
         
         <!-- Load jobfile and copy input -->

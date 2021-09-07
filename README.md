@@ -37,3 +37,12 @@ Different versions of the NPB:
   * Single-node
   * Multi-node (MPI only)
 
+# MD\_BENCHMARK
+This benchmark is designed to benchmark Molecular Dynamics simulation software. It is especially tailored to find the best configuration for Gromacs runs.
+[Download MDBenchmark here](https://mdbenchmark.readthedocs.io/)
+
+Several sample template submission files are provided (to be placed in ~/.local/lib/python3.7/site-packages/mdbenchmark/templates/):
+* rusty2021.1\_rome to test performance on the rome nodes and assess the best ratio of MPI ranks vs OpenMP threads
+* rusty2021.1\_gpu can be used to test the performance on the GPU nodes
+* rusty2021.1\_singlegpunode.a100 is to be used on a single node, with the NVIDIA optimizations for Gromacs 2021+
+

@@ -1,0 +1,48 @@
+#!/bin/bash -l
+### Template for MDBenchmark submissions using SLURM on rusty
+#       Gromacs 2021.1
+#       gpu nodes
+# 2021/03/10
+# gkrawezik@flatironinstitute.org for details
+
+# Standard output and error:
+#SBATCH -o ./{{ job_name }}.out.%j
+#SBATCH -e ./{{ job_name }}.err.%j
+# Initial working directory:
+#SBATCH -D ./
+# Job Name:
+#SBATCH -J {{ job_name }}
+#
+# Queue (Partition):
+#SBATCH --partition=gpu
+#SBATCH --gpus-per-node=v100-32gb:4
+#
+# Request {{ n_nodes }} node(s)
+#SBATCH --nodes={{ n_nodes }}
+# Set the number of tasks per node (=MPI ranks)
+#SBATCH --ntasks-per-node={{ number_of_ranks }}
+# Set the number of threads per rank (=OpenMP threads)
+#SBATCH --cpus-per-task={{ number_of_threads }}
+# Wall clock limit:
+#SBATCH --time={{ formatted_time }}
+
+
+module purge
+module load gcc/7.4.0 
+module load python3/3.7.3
+module load openmpi4/4.0.5
+module load slurm
+module load lib/fftw3
+{%if gpu %}
+module load cuda/11.1.0_455.23.05
+module load gromacs/2021.1
+{%- else %}
+module load cuda/11.1.0_455.23.05
+module load gromacs/2021.1
+{%- endif %}
+
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+# Run {{ module }} for {{ time  }} minutes
+mpirun --map-by socket:pe=$OMP_NUM_THREADS -np {{ n_nodes * number_of_ranks }} gmx_mpi mdrun -v -ntomp $OMP_NUM_THREADS -maxh {{ time / 60 }} -resethway -noconfout -deffnm {{ name }}
+
