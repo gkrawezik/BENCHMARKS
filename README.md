@@ -6,6 +6,11 @@ These are different benchmarks to be used with the JUBE software
 
 The idea is to provide an input file describing what you want to test (eg: different inputs, number of nodes, compilers, libraries...) and JUBE will run a matrix of all the different possible combinations, then present the results in a structured way.
 
+A typical run will look like this:
+```jube run definition.xml # Launch the benchmark
+jube definition npb_omp --id 0 # Check periodically the progress of the benchmark
+jube result npb_omp --id 0 # Get the results ```
+
 These folders do not contain any packages: you might need to download them if they are not present in the modules system.
 Input files, XML files for the benchmarks, and Slurm templates are provided.
 

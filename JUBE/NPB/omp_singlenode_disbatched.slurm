@@ -1,5 +1,5 @@
 #!/bin/bash
-# eg: sbatch -C rome -p scc -N4 --ntasks-per-node 128 mpi_singlenode_disbatched.slurm
+# eg: sbatch -C rome -p scc -N4 --ntasks-per-node 128 omp_singlenode_disbatched.slurm
 
 p=/tmp/dbTaskPipe_${SLURM_JOBID}
 rm -f $p
@@ -22,7 +22,7 @@ disBatch -t 1 $p &
 # Keep the pipe open.
 exec 3>$p
 
-export FAUX_SUB=${fs}; jube run npb_mpi_singlenode_disbatched.xml 2> hw_smdb.log
+export FAUX_SUB=${fs}; jube run npb_omp_singlenode_disbatched.xml 2> hw_smdb.log
 
 # Close the pipe
 exec 3>&-
