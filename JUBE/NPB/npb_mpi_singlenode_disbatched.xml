@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <!-- DO NOT launch this using jube run! Use the mpi_singlenode_disbatched.slurm instead! -->
+    <benchmark name="npb3.4.1" outpath="npb_mpi">
+        <comment>NPB3.4.1 Rome Single node MPI gcc/7.4.0 zen1</comment>
+        
+        <!-- benchmark configuration -->
+        <parameterset name="param_set">
+            <parameter name="num_nodes" type="int">1</parameter>
+            <parameter name="num_ranks_per_node" type="int">1,2,4,8,16,32,64,128</parameter>
+            <parameter name="kernel" type="string">ep,lu</parameter>
+            <parameter name="class" type="string">A,B,C,D</parameter>
+            <!--parameter name="class" type="string">A</parameter-->
+            <parameter name="compiler" type="string">gcc/7.4.0</parameter>
+            <parameter name="arch" type="string">zen1</parameter>
+        </parameterset>
+
+        <!-- Job configuration -->
+        <parameterset name="executeset">
+            <parameter name="proc_type" type="string">rome</parameter>
+            <parameter name="procs_per_node" type="int">128</parameter>
+            <parameter name="ranks_per_node" type="int">$num_ranks_per_node</parameter>
+            <parameter name="num_ranks" type="int" mode="python">${num_nodes}*${ranks_per_node}</parameter>
+            <parameter name="ready_file">ready</parameter>
+            <parameter name="err_file">npb.err</parameter>
+            <parameter name="out_file">npb.out</parameter>
+            <parameter name="work_dir_2" type="string">"$$HOME/ceph/BENCHMARKS/JUBE/NPB/run_only_mpi/${jube_benchmark_padid}/wp_${jube_wp_padid}"</parameter>
+            <parameter name="exec">'( cd ${work_dir_2} ; module load ${compiler}; module load openmpi4; unset SLURM_JOBID; mpirun -np ${num_ranks} --bind-to core ./$kernel.$class.x > ${out_file} 2> ${err_file}; touch ${ready_file} )'</parameter>
+            <!-- parameter name="exec">module load ${compiler}; module load openmpi4; mpirun -np ${num_ranks} - -bind-to core ./$kernel.$class.x > ${out_file} 2> ${err_file}; touch ${ready_file}</parameter -->
+        </parameterset>
+        
+        <!-- Load jobfile and copy input -->
+        <fileset name="files">
+            <link>$$PWD/compiled/NPB3.4.1/NPB3.4-MPI/bin/$compiler/$arch/$kernel.$class.x</link>
+            <link>$$PWD/$$FAUX_SUB</link>
+        </fileset>
+        
+        <!-- Regex pattern -->
+        <patternset name="pattern">
+            <pattern name="kernel_name" type="string">$jube_pat_wrd Benchmark Completed.</pattern>
+            <pattern name="class_size" type="string">Class           =\s+$jube_pat_wrd</pattern>
+            <pattern name="num_ranks_used" type="int">Total processes =\s+$jube_pat_int</pattern>
+            <pattern name="time_in_seconds" type="float">Time in seconds =\s+$jube_pat_fp</pattern>
+            <pattern name="mflops" type="float">Mop/s total     =\s+$jube_pat_fp</pattern>
+        </patternset>
+
+        <!-- Operation -->
+        <step name="submit" work_dir="$$HOME/ceph/BENCHMARKS/JUBE/NPB/run_only_mpi/${jube_benchmark_padid}/wp_${jube_wp_padid}">
+            <use>param_set</use>
+            <use>executeset</use>
+            <use>files</use>
+            <!--do done_file="$ready_file">$$FAUX_SUB '( cd ${work_dir}; pwd; $exec )'</do --> <!-- shell command -->
+            <do done_file="$ready_file">$$FAUX_SUB $exec</do> <!-- shell command -->
+        </step>
+
+        <!-- Analyze -->
+        <analyser name="analyse">
+            <use>pattern</use>
+            <analyse step="submit">
+                <file>$out_file</file>
+            </analyse>
+        </analyser>
+
+        <!-- Create result table -->
+        <result>
+            <use>analyse</use>
+            <table name="result" style="csv" sort="kernel_name,class_size,num_ranks_used">
+                <column>kernel_name</column>
+                <column>class_size</column>
+                <column>num_ranks_used</column>
+                <column>time_in_seconds</column>
+                <column>mflops</column>
+            </table>
+        </result>
+
+    </benchmark>
+</jube>

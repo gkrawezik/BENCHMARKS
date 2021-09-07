@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <benchmark name="npb3.4.1" outpath="bench_npb_run_mpi">
+        <comment>NPB3.4.1 Icelake Single node MPI gcc/7.4.0 skylake</comment>
+        
+        <!-- benchmark configuration -->
+        <parameterset name="param_set">
+            <parameter name="num_nodes" type="int">1</parameter>
+            <!--parameter name="num_ranks_per_node" type="int">1,2,4,8,16,32,64,128</parameter-->
+            <!--parameter name="num_ranks_per_node" type="int">1,2,4,8,16,32,64</parameter-->
+            <!--parameter name="num_ranks_per_node" type="int">1,2,4,8</parameter-->
+            <parameter name="num_ranks_per_node" type="int">16,32,64</parameter>
+            <parameter name="kernel" type="string">bt,cg,ep,ft,is,lu,mg,sp</parameter>
+            <!--parameter name="kernel" type="string">is,lu,mg,sp</parameter-->
+            <parameter name="class" type="string">D</parameter>
+            <parameter name="compiler" type="string">gcc/7.4.0</parameter>
+            <parameter name="arch" type="string">skylake</parameter>
+        </parameterset>
+
+        <!-- Job configuration -->
+        <parameterset name="executeset">
+            <parameter name="submit_cmd">sbatch</parameter>
+            <parameter name="job_file">npb_mpi_test.run</parameter>
+            <parameter name="walltime">02:00:00</parameter>
+            <parameter name="proc_type" type="string">icelake</parameter>
+            <parameter name="procs_per_node" type="int">64</parameter>
+            <parameter name="ranks_per_node" type="int">$num_ranks_per_node</parameter>
+            <parameter name="num_ranks" type="int" mode="python">${num_nodes}*${ranks_per_node}</parameter>
+            <parameter name="ready_file">ready</parameter>
+            <parameter name="err_file">npb.err</parameter>
+            <parameter name="out_file">npb.out</parameter>
+            <parameter name="exec">echo "Launching $kernel on $num_threads cores"; hostname; mpirun -np ${num_ranks} --bind-to core ./$kernel.$class.x</parameter>
+        </parameterset>
+        
+        <!-- Load jobfile and copy input -->
+        <fileset name="files">
+            <copy>${job_file}.in</copy>
+            <copy>compiled/NPB3.4.1/NPB3.4-MPI/bin/$compiler/$arch/$kernel.$class.x</copy>
+        </fileset>
+        
+        <!-- Substitute jobfile -->
+        <substituteset name="sub_job">
+            <iofile in="${job_file}.in" out="$job_file" />
+            <sub source="#PROC_TYPE#" dest="$proc_type" />
+            <sub source="#PROCS_PER_NODE#" dest="$procs_per_node" />
+            <sub source="#WALLTIME#" dest="$walltime" />
+            <sub source="#ERROR_FILEPATH#" dest="$err_file" />
+            <sub source="#OUT_FILEPATH#" dest="$out_file" />
+            <sub source="#EXEC#" dest="$exec" />
+            <sub source="#READY#" dest="$ready_file" />
+            <sub source="#COMPILER#" dest="$compiler" />
+        </substituteset> 
+
+        <!-- Regex pattern -->
+        <patternset name="pattern">
+            <pattern name="num_ranks_used" type="int">Total processes =\s+$jube_pat_int</pattern>
+            <pattern name="time_in_seconds" type="float">Time in seconds =\s+$jube_pat_fp</pattern>
+            <pattern name="mflops" type="float">Mop/s total     =\s+$jube_pat_fp</pattern>
+        </patternset>
+
+        <!-- Operation -->
+        <step name="submit" work_dir="$$HOME/ceph/BENCHMARKS/JUBE/NPB/run_only_mpi/${jube_benchmark_padid}/wp_${jube_wp_padid}">
+            <use>param_set</use>
+            <use>executeset</use>
+            <use>files,sub_job</use>
+            <do done_file="$ready_file">module load slurm; $submit_cmd $job_file</do> <!-- shell command -->
+        </step>
+
+        <!-- Analyze -->
+        <analyser name="analyse">
+            <use>pattern</use>
+            <analyse step="submit">
+                <file>$out_file</file>
+            </analyse>
+        </analyser>
+
+        <!-- Create result table -->
+        <result>
+            <use>analyse</use>
+            <table name="result" style="csv" sort="kernel,class,num_ranks_used">
+                <column>kernel</column>
+                <column>class</column>
+                <column>num_ranks_used</column>
+                <column>time_in_seconds</column>
+                <column>mflops</column>
+            </table>
+        </result>
+
+    </benchmark>
+</jube>

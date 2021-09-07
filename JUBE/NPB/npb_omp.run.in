@@ -1,0 +1,16 @@
+#!/bin/bash -l
+#SBATCH -p scc -C #PROC_TYPE#
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=#PROCS_PER_NODE#
+#SBATCH --time=#WALLTIME#
+#SBATCH -e #ERROR_FILEPATH#
+#SBATCH -o #OUT_FILEPATH#
+
+### start of jobscript
+
+module purge
+module load #COMPILER#
+module load slurm
+
+#EXEC#
+touch #READY#

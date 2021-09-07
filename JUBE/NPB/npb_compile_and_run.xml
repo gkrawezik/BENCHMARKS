@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <benchmark name="npb3.4.1" outpath="bench_run">
+        <comment>NPB3.4.1 Rome</comment>
+        
+        <!-- benchmark configuration -->
+        <parameterset name="param_set">
+            <parameter name="num_nodes" type="int">1</parameter>
+            <parameter name="num_ranks_per_node" type="int">128</parameter>
+            <parameter name="kernel" type="string">cg,mg</parameter>
+            <parameter name="class" type="string">A,B</parameter>
+        </parameterset>
+
+        <parameterset name="comp_set">
+            <parameter name="compiler" type="string">gcc/7.4.0</parameter>
+        </parameterset>
+        
+        <!-- Job configuration -->
+        <parameterset name="executeset">
+            <parameter name="submit_cmd">sbatch</parameter>
+            <parameter name="job_file">npb_rome.run</parameter>
+            <parameter name="nodes" type="int">$num_nodes</parameter>
+            <parameter name="walltime">02:00:00</parameter>
+            <parameter name="ranks_per_node" type="int">$num_ranks_per_node</parameter>
+            <parameter name="procs_per_node" type="int">128</parameter>
+            <parameter name="threads_per_rank" type="int" mode="python">int(${procs_per_node}/${ranks_per_node})</parameter>
+            <parameter name="num_ranks" type="int" mode="python">${num_nodes}*${ranks_per_node}</parameter>
+            <parameter name="ready_file">ready</parameter>
+            <parameter name="err_file">npb.err</parameter>
+            <parameter name="out_file">npb.out</parameter>
+            <parameter name="exec">echo "Launching $kernel on $num_nodes nodes $compiler"; hostname; mpirun -np ${num_ranks} --bind-to core compile/NPB3.4.1/NPB3.4-MPI/bin/$kernel.$class.x</parameter>
+        </parameterset>
+        
+        <!-- Load jobfile and copy input -->
+        <fileset name="files">
+            <copy>${job_file}.in</copy>
+        </fileset>
+        
+        <!-- Substitute jobfile -->
+        <substituteset name="sub_job">
+            <iofile in="${job_file}.in" out="$job_file" />
+            <sub source="#NODES#" dest="$nodes" />
+            <sub source="#PROCS_PER_NODE#" dest="$procs_per_node" />
+            <sub source="#WALLTIME#" dest="$walltime" />
+            <sub source="#ERROR_FILEPATH#" dest="$err_file" />
+            <sub source="#OUT_FILEPATH#" dest="$out_file" />
+            <sub source="#EXEC#" dest="$exec" />
+            <sub source="#READY#" dest="$ready_file" />
+            <sub source="#COMPILER#" dest="$compiler" />
+        </substituteset> 
+
+        <!-- Regex pattern -->
+        <patternset name="pattern">
+            <pattern name="mflops" type="float">Mop/s total     =\s+$jube_pat_fp</pattern>
+        </patternset>
+
+        <!-- Source code -->
+        <fileset name="source">
+            <copy>NPB3.4.1</copy>
+        </fileset>
+
+        <!-- Build -->
+        <!--step name="compile" work_dir="$$SCRATCH_NPB/jobsystem_bench_${jube_benchmark_id}_${jube_wp_id}"-->
+        <step name="compile" work_dir="SCRATCH_NPB/build/$compiler/$class">
+        <!--step name="compile"-->
+            <use>source</use>
+            <use>comp_set</use>
+            <use>param_set</use>
+            <do work_dir="NPB3.4.1/NPB3.4-MPI">
+                module purge
+                module load $compiler
+                module load openmpi4
+                module list
+                make $kernel CLASS=$class sys/setparams
+                make $kernel CLASS=$class -j16
+            </do>
+        </step>
+                 
+        <!-- Operation -->
+        <!--step name="submit" work_dir="$$SCRATCH_NPB/jobsystem_bench_${jube_benchmark_id}_${jube_wp_id}" depend="compile"-->
+        <step name="submit" work_dir="SCRATCH_NPB/jobsystem_bench_${jube_benchmark_id}_${jube_wp_id}" depend="compile">
+        <!--step name="submit" depend="compile"-->
+            <use>comp_set</use>
+            <use>param_set</use>
+            <use>executeset</use>
+            <use>files,sub_job</use>
+            <do done_file="$ready_file">module load slurm; $submit_cmd $job_file</do> <!-- shell command -->
+        </step>
+
+        <!-- Analyze -->
+        <analyser name="analyse">
+            <use>pattern</use>
+            <analyse step="submit">
+                <file>$out_file</file>
+            </analyse>
+        </analyser>
+
+        <!-- Create result table -->
+        <result>
+            <use>analyse</use>
+            <table name="result" style="pretty" sort="number">
+                <column>compiler</column>
+                <column>kernel</column>
+                <column>class</column>
+                <column>nodes</column>
+                <column>ranks_per_node</column>
+                <column>threads_per_rank</column>
+                <column>mflops</column>
+            </table>
+        </result>
+
+    </benchmark>
+</jube>
