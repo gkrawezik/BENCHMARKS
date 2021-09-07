@@ -1,8 +1,10 @@
-Different benchmarks that can be used
+Different benchmarks that can be used on the machines at FI. Note that it is easy to overwhelm the batch schedulers, so try and make sure to not run something that will launch hundreds of jobs. Using [disBatch](https://github.com/flatironinstitute/disBatch) is a good idea if you can (single node)
 
 # JUBE: 
 These are different benchmarks to be used with the JUBE software
 [Download JUBE here](https://www.fz-juelich.de/ias/jsc/EN/Expertise/Support/Software/JUBE/_node.html)
+
+The idea is to provide an input file describing what you want to test (eg: different inputs, number of nodes, compilers, libraries...) and JUBE will run a matrix of all the different possible combinations, then present the results in a structured way.
 
 These folders do not contain any packages: you might need to download them if they are not present in the modules system.
 Input files, XML files for the benchmarks, and Slurm templates are provided.
@@ -20,3 +22,11 @@ This test contains both the (non optimized) reference code for HPCG, but also th
 
 ## HPL: High Performance Linpack _Weak scaling, GPUs, singularity/docker container_
 This test contains also the reference code, as well as the NVIDIA optimized version which has to be run through a singularity
+
+## NPB: NAS Parallel Benchmarks _Strong scaling, disBatch, MPI, OpenMP_
+Different versions of the NPB:
+* single-node disBatch: when running with up to *number of cores per node*, we can run our suite using disBatch, this is such an example. Submit with mpi\_singlenode\_disbatched.slurm instead of jube directly
+* Generic MPI and OpenMP:
+  * Single-node
+  * Multi-node (MPI only)
+
