@@ -1,5 +1,9 @@
 Different benchmarks that can be used on the machines at FI. Note that it is easy to overwhelm the batch schedulers, so try and make sure to not run something that will launch hundreds of jobs. Using [disBatch](https://github.com/flatironinstitute/disBatch) is a good idea if you can (single node)
 
+[JUBE](#jube)
+[MDBenchmark](#mdbenchmark)
+
+<a name="jube"/>
 # JUBE: 
 These are different benchmarks to be used with the JUBE software
 [Download JUBE here](https://www.fz-juelich.de/ias/jsc/EN/Expertise/Support/Software/JUBE/_node.html)
@@ -37,6 +41,7 @@ Different versions of the NPB:
   * Single-node
   * Multi-node (MPI only)
 
+<a name="mdbenchmark"/>
 # MD\_BENCHMARK
 This benchmark is designed to benchmark Molecular Dynamics simulation software. It is especially tailored to find the best configuration for Gromacs runs.
 [Download MDBenchmark here](https://mdbenchmark.readthedocs.io/)
